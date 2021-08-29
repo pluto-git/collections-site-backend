@@ -1,25 +1,11 @@
 const mongoose = require("mongoose");
-
-// const usersSchema = new mongoose.Schema({
-//   user_id: {
-//     type: Number,
-//     required: true,
-//     unique: [true, "user id must be unique"],
-//   },
-//   user_role: {
-//     type: String,
-//     required: true,
-//   },
-//   collections: [
-
-//   ],
-// });
+const uniqueValidator = require("mongoose-unique-validator");
 
 const usersSchema = new mongoose.Schema({
   user_id: {
-    type: Number,
+    type: String,
     required: true,
-    unique: [true, "user id must be unique"],
+    unique: true,
   },
   user_role: {
     type: String,
@@ -27,26 +13,19 @@ const usersSchema = new mongoose.Schema({
   },
   collections: [
     {
-      _id: false,
-      id: {
-        type: Number,
-        required: true,
-        unique: [true, "collection id must be unique"],
-      },
       name: {
+        type: String,
+      },
+      theme: {
         type: String,
       },
       description: String,
       image: "",
-      items: [
-        {
-          name: {
-            type: String,
-          },
-        },
-      ],
+      fields: [],
+      items: [],
     },
   ],
 });
+usersSchema.plugin(uniqueValidator);
 
 module.exports = usersSchema;
