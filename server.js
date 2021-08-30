@@ -24,12 +24,6 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 
 const User = db.model("Users", usersSchema);
-//dummy user
-
-// const user = new User({
-//   user_id: "2",
-//   user_role: "user",
-// });
 
 app.get("/", (req, res) => {
   console.log("from the route");
@@ -42,39 +36,30 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/find", (req, res) => {
-  console.log("from the route");
+app.get("/:id/get-fields/:collection_id", (req, res) => {
+  const user_id = req.params.id;
+  const collection_id = req.params.collection_id;
 
-  User.findOne({ user_id: "auth0|60ffa66e3582bc0069466022" }, (err, doc) => {
+  User.findOne({ user_id: user_id }, (err, doc) => {
     if (err) {
       res.status(400).json({ error: err });
+    } else {
+      const result = doc.collections.find(
+        (collection) => collection._id == collection_id
+      ).fields;
+      res.send(result);
     }
-    doc.collections[0].items = [{ logo: "goingoo" }, { go: "goo" }];
-    console.log(doc);
-    doc.save();
   });
-  // User.findOneAndUpdate(
-  //   { user_id: "auth0|60ffa66e3582bc0069466022" },
-  //   { $set: { user_role: "admin" } },
-  //   { new: true },
-  //   (err, doc) => {
-  //     if (err) {
-  //       console.log("Something wrong when updating data!");
-  //     }
-  // doc.collections[0].items = [{ logo: "going" }, { go: "go" }];
-  // console.log(doc);
-  // doc.save();
-  //   }
-  // );
 });
 
+///saving a new user.
 app.post("/save-user", (req, res) => {
-  const user_id = req.body.user_id;
+  const { user_id, user_email } = req.body;
   const user = new User({
     user_id: user_id,
     user_role: "user",
+    user_email: user_email,
   });
-
   user.save((err, addedUser) => {
     if (!err) {
       res.json({ message: "success" });
@@ -84,6 +69,7 @@ app.post("/save-user", (req, res) => {
   });
 });
 
+//send parameters to add a collection, clarify fields
 app.patch("/add-user-collection", (req, res) => {
   const { user_id, name, theme, description, image, fields } = req.body;
 
@@ -92,6 +78,7 @@ app.patch("/add-user-collection", (req, res) => {
       res.json({ error: error });
     }
     const imageUrl = cloudinaryImage.url;
+
     const updateObject = {
       name: name,
       theme: theme,
@@ -114,7 +101,6 @@ app.patch("/add-user-collection", (req, res) => {
             }
             doc.collections[doc.collections.length - 1].fields = fields;
             collectionId = doc.collections[doc.collections.length - 1]._id;
-            console.log(collectionId);
             doc.save().then(res.json(collectionId));
           });
         } else {
@@ -123,6 +109,51 @@ app.patch("/add-user-collection", (req, res) => {
       }
     );
   });
+});
+
+app.post("/add-item", (req, res) => {
+  const { user_id, collection_id } = req.body;
+  const item = req.body.item;
+
+  User.findOne({ user_id: user_id }, (err, doc) => {
+    if (err) {
+      res.status(400).json({ error: err });
+    } else {
+      doc.collections
+        .find((collection) => collection._id == collection_id)
+        .items.push(item);
+      doc.save().then(res.json({ message: "success" }));
+    }
+  });
+});
+
+app.get("/:id/collections/", (req, res) => {
+  const user_id = req.params.id;
+  User.findOne({ user_id: user_id }, (err, doc) => {
+    if (err) {
+      res.status(400).json({ error: err });
+    } else {
+      res.status(200).json(doc.collections);
+    }
+  });
+});
+
+app.delete("/:id/delete-collection/:collection_id", (req, res) => {
+  const user_id = req.params.id;
+  const collection_id = req.params.collection_id;
+
+  User.findOneAndUpdate(
+    { user_id: user_id },
+    { $pull: { collections: { _id: collection_id } } },
+    { new: true },
+    function (err) {
+      if (err) {
+        console.log(err);
+      }else{
+        res.status(200);
+      }
+    }
+  );
 });
 
 app.listen(PORT, () => {
