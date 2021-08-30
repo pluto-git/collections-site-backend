@@ -149,11 +149,43 @@ app.delete("/:id/delete-collection/:collection_id", (req, res) => {
     function (err) {
       if (err) {
         console.log(err);
-      }else{
+      } else {
         res.status(200);
       }
     }
   );
+});
+
+app.get("/:id/collections/:collectionId/items", (req, res) => {
+  const user_id = req.params.id;
+  const collection_id = req.params.collectionId;
+  User.findOne({ user_id: user_id }, (err, doc) => {
+    if (err) {
+      res.status(400).json({ error: err });
+    } else {
+      const result = doc.collections.find(
+        (collection) => collection._id == collection_id
+      ).items;
+      res.status(200).json(result);
+    }
+  });
+});
+
+app.get("/all-collections", (req, res) => {
+  var usersProjection = {
+    __v: false,
+    user_id: false,
+    user_role: false,
+    user_email: false
+  };
+
+  User.find({}, usersProjection, (err, users) => {
+    if (!err) {
+      res.json(users);
+    } else {
+      res.json({err: "err"});
+    }
+  });
 });
 
 app.listen(PORT, () => {
